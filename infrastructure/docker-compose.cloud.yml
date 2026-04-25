@@ -1,0 +1,132 @@
+## Cloud VPS Docker Compose — Run the factory on a remote server
+## For when you want the factory running 24/7 without your rack being on,
+## or when you want to access it from anywhere.
+##
+## Recommended: Hetzner CX32 ($25/mo) or DigitalOcean ($28/mo)
+##   4 vCPU, 8GB RAM, 80GB SSD
+##
+## No Ollama (no GPU on cheap VPS) — all LLM calls go through APIs.
+## For GPU cloud: Lambda Labs, Vast.ai, RunPod ($0.50-2/hr with GPU)
+##
+## Setup:
+##   1. Provision VPS, point your domain DNS to its IP
+##   2. scp -r factory/* root@your-vps:/opt/factory/
+##   3. ssh root@your-vps
+##   4. cd /opt/factory && cp .env.example .env && nano .env
+##   5. docker compose -f infrastructure/docker-compose.cloud.yml up -d
+##   6. Access: https://factory.yourdomain.com
+
+version: "3.9"
+
+services:
+  # ── Caddy (reverse proxy + auto-TLS via Let's Encrypt) ──
+  caddy:
+    image: caddy:2-alpine
+    container_name: factory-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile.cloud:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - openclaw-gateway
+    restart: unless-stopped
+    networks:
+      - factory-net
+
+  # ── OpenClaw Gateway ──────────────────────────────────
+  openclaw-gateway:
+    image: node:24-bookworm
+    container_name: factory-gateway
+    working_dir: /app
+    command: >
+      sh -c "npm install -g openclaw && openclaw start --port 18789 --bind 0.0.0.0"
+    expose:
+      - "18789"
+    volumes:
+      - ../openclaw.json:/root/.openclaw/openclaw.json:ro
+      - ../SOUL.md:/root/.openclaw/SOUL.md:ro
+      - ../AGENTS.md:/root/.openclaw/AGENTS.md:ro
+      - ../skills:/root/.openclaw/skills:ro
+      - ../pipelines:/root/.openclaw/pipelines:ro
+      - ../templates:/root/.openclaw/templates:ro
+      - ../roles:/root/.openclaw/roles:ro
+      - factory-workspaces:/root/.openclaw/workspaces
+    env_file:
+      - ../.env
+    environment:
+      - NODE_ENV=production
+      - OPENCLAW_PORT=18789
+      - OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN}
+    depends_on:
+      - valkey
+    restart: unless-stopped
+    networks:
+      - factory-net
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4G
+
+  # ── Mission Control (CEO dashboard) ───────────────────
+  mission-control:
+    image: node:24-slim
+    container_name: factory-dashboard
+    working_dir: /app
+    command: >
+      sh -c "
+        git clone https://github.com/abhi1693/openclaw-mission-control.git . 2>/dev/null || true &&
+        npm install && npm run build && npm start
+      "
+    expose:
+      - "3000"
+    environment:
+      - OPENCLAW_GATEWAY_URL=http://openclaw-gateway:18789
+      - GATEWAY_TOKEN=${GATEWAY_TOKEN}
+      - AUTH_MODE=token
+    depends_on:
+      - openclaw-gateway
+    restart: unless-stopped
+    networks:
+      - factory-net
+
+  # ── Code Sandbox (Docker-in-Docker) ──────────────────
+  sandbox:
+    image: docker:27-dind
+    container_name: factory-sandbox
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=
+    volumes:
+      - sandbox-data:/var/lib/docker
+      - factory-workspaces:/workspaces
+    restart: unless-stopped
+    networks:
+      - factory-net
+
+  # ── Valkey (Redis fork, fully open source BSD-3) ──────
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: factory-valkey
+    expose:
+      - "6379"
+    volumes:
+      - valkey-data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    networks:
+      - factory-net
+
+volumes:
+  caddy-data:
+  caddy-config:
+  factory-workspaces:
+  sandbox-data:
+  valkey-data:
+
+networks:
+  factory-net:
+    driver: bridge

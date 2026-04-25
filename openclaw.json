@@ -1,0 +1,325 @@
+{
+  // OpenClaw Configuration — Autonomous AI Software Factory
+  // Gateway: port 18789 | Skills: ./skills/ | Pipelines: ./pipelines/
+
+  agents: {
+    defaults: {
+      model: {
+        primary: "anthropic/claude-sonnet-4-6",
+        fallbacks: ["openai/gpt-5.4", "meta/llama-4-maverick-400b"]
+      },
+      subagents: {
+        maxSpawnDepth: 2,
+        maxConcurrent: 10,
+        maxChildrenPerAgent: 5,
+        runTimeoutSeconds: 1800,
+        thinking: "enabled"
+      },
+      sandbox: {
+        mode: "non-main",
+        backend: "docker",
+        scope: "session",
+        image: "node:24-slim"
+      },
+      agentToAgent: {
+        enabled: true
+      }
+    },
+
+    list: [
+      // ═══════════════════════════════════════════
+      // L8 — ORCHESTRATOR (CEO Proxy)
+      // ═══════════════════════════════════════════
+      {
+        id: "orchestrator",
+        workspace: "./workspaces/orchestrator",
+        model: {
+          primary: "anthropic/claude-opus-4-6",
+          fallbacks: ["openai/gpt-5.4", "meta/llama-4-maverick-400b"]
+        },
+        tools: {
+          profile: "full"
+        },
+        sandbox: { mode: "off" },
+        skills: [
+          "./skills/management/resource-allocation",
+          "./skills/management/budget-management",
+          "./skills/management/dispute-resolution",
+          "./skills/management/scope-negotiation",
+          "./skills/management/product-lifecycle",
+          "./skills/management/product-registry"
+        ],
+        subagents: {
+          maxSpawnDepth: 2,
+          maxConcurrent: 10,
+          maxChildrenPerAgent: 8,
+          allowAgents: ["*"]
+        }
+      },
+
+      // ═══════════════════════════════════════════
+      // L7 — C-SUITE
+      // ═══════════════════════════════════════════
+      {
+        id: "cpo",
+        workspace: "./workspaces/cpo",
+        model: {
+          primary: "anthropic/claude-opus-4-6",
+          fallbacks: ["openai/gpt-5.4", "deepseek/deepseek-r1"]
+        },
+        tools: { profile: "minimal" },
+        sandbox: { mode: "off" },
+        skills: [
+          "./skills/product/prd-writing",
+          "./skills/product/user-research",
+          "./skills/management/scope-negotiation"
+        ]
+      },
+      {
+        id: "cto",
+        workspace: "./workspaces/cto",
+        model: {
+          primary: "anthropic/claude-opus-4-6",
+          fallbacks: ["openai/gpt-5.4", "deepseek/deepseek-r1"]
+        },
+        tools: { profile: "coding" },
+        sandbox: { mode: "off" },
+        skills: [
+          "./skills/architecture/system-design",
+          "./skills/architecture/tech-stack-evaluation",
+          "./skills/management/dispute-resolution"
+        ]
+      },
+
+      // ═══════════════════════════════════════════
+      // L6 — MANAGEMENT LAYER
+      // ═══════════════════════════════════════════
+      {
+        id: "tech-lead",
+        workspace: "./workspaces/tech-lead",
+        model: {
+          primary: "anthropic/claude-sonnet-4-6",
+          fallbacks: ["openai/gpt-5.4", "meta/llama-4-maverick-400b"]
+        },
+        tools: { profile: "coding" },
+        sandbox: { mode: "non-main", backend: "docker" },
+        skills: [
+          "./skills/engineering/code-review",
+          "./skills/architecture/system-design",
+          "./skills/management/resource-allocation",
+          "./skills/management/dispute-resolution",
+          "./skills/platform/observability"
+        ],
+        subagents: {
+          maxChildrenPerAgent: 5,
+          allowAgents: ["senior-dev", "junior-dev", "qa-engineer", "devops-engineer"]
+        }
+      },
+      {
+        id: "product-manager",
+        workspace: "./workspaces/product-manager",
+        model: {
+          primary: "anthropic/claude-sonnet-4-6",
+          fallbacks: ["openai/gpt-5.4", "meta/llama-4-maverick-400b"]
+        },
+        tools: { profile: "minimal" },
+        sandbox: { mode: "off" },
+        skills: [
+          "./skills/product/prd-writing",
+          "./skills/product/user-research",
+          "./skills/product/backlog-prioritization"
+        ]
+      },
+      {
+        id: "marketing-lead",
+        workspace: "./workspaces/marketing-lead",
+        model: {
+          primary: "anthropic/claude-sonnet-4-6",
+          fallbacks: ["openai/gpt-5.4", "meta/llama-4-maverick-400b"]
+        },
+        tools: { profile: "messaging" },
+        sandbox: { mode: "off" },
+        skills: [
+          "./skills/marketing/campaign-brief",
+          "./skills/marketing/seo-optimization"
+        ]
+      },
+      {
+        id: "sales-lead",
+        workspace: "./workspaces/sales-lead",
+        model: {
+          primary: "anthropic/claude-sonnet-4-6",
+          fallbacks: ["openai/gpt-5.4", "meta/llama-4-maverick-400b"]
+        },
+        tools: { profile: "messaging" },
+        sandbox: { mode: "off" },
+        skills: [
+          "./skills/sales/competitive-analysis",
+          "./skills/sales/pricing-strategy",
+          "./skills/sales/pitch-deck"
+        ]
+      },
+
+      // ═══════════════════════════════════════════
+      // L5 — SENIOR EXECUTION
+      // ═══════════════════════════════════════════
+      {
+        id: "senior-dev",
+        workspace: "./workspaces/senior-dev",
+        model: {
+          primary: "anthropic/claude-sonnet-4-6",
+          fallbacks: ["openai/gpt-4o", "deepseek/deepseek-v3"]
+        },
+        tools: { profile: "coding" },
+        sandbox: { mode: "non-main", backend: "docker" },
+        skills: [
+          "./skills/engineering/code-generation",
+          "./skills/engineering/code-review",
+          "./skills/engineering/debugging",
+          "./skills/engineering/api-design"
+        ]
+      },
+      {
+        id: "ux-designer",
+        workspace: "./workspaces/ux-designer",
+        model: {
+          primary: "anthropic/claude-sonnet-4-6",
+          fallbacks: ["openai/gpt-4o", "deepseek/deepseek-v3"]
+        },
+        tools: { profile: "minimal" },
+        sandbox: { mode: "off" },
+        skills: []
+      },
+
+      // ═══════════════════════════════════════════
+      // L3-L4 — JUNIOR EXECUTION
+      // ═══════════════════════════════════════════
+      {
+        id: "junior-dev",
+        workspace: "./workspaces/junior-dev",
+        model: {
+          // On local rack: swap primary to "ollama/qwen2.5-coder:32b" for $0 cost
+          primary: "anthropic/claude-haiku-4-5",
+          fallbacks: ["ollama/qwen2.5-coder:32b", "openai/gpt-4o-mini"]
+        },
+        tools: {
+          profile: "coding",
+          deny: ["exec:network", "write:secrets"]
+        },
+        sandbox: { mode: "all", backend: "docker" },
+        skills: [
+          "./skills/engineering/code-generation",
+          "./skills/engineering/test-writing"
+        ]
+      },
+      {
+        id: "qa-engineer",
+        workspace: "./workspaces/qa-engineer",
+        model: {
+          primary: "anthropic/claude-haiku-4-5",
+          fallbacks: ["openai/gpt-4o-mini", "meta/llama-4-scout"]
+        },
+        tools: { profile: "coding" },
+        sandbox: { mode: "all", backend: "docker" },
+        skills: [
+          "./skills/qa/test-plan",
+          "./skills/qa/test-execution",
+          "./skills/engineering/debugging"
+        ]
+      },
+      {
+        id: "devops-engineer",
+        workspace: "./workspaces/devops-engineer",
+        model: {
+          primary: "anthropic/claude-haiku-4-5",
+          fallbacks: ["openai/gpt-4o-mini", "deepseek/deepseek-v3"]
+        },
+        tools: { profile: "coding" },
+        sandbox: { mode: "non-main", backend: "docker" },
+        skills: [
+          "./skills/devops/deployment",
+          "./skills/devops/monitoring",
+          "./skills/devops/ci-cd",
+          "./skills/platform/observability"
+        ]
+      },
+      {
+        id: "content-specialist",
+        workspace: "./workspaces/content-specialist",
+        model: {
+          // On local rack: swap primary to "ollama/gemma3:27b" for $0 cost
+          primary: "anthropic/claude-haiku-4-5",
+          fallbacks: ["ollama/gemma3:27b", "openai/gpt-4o-mini"]
+        },
+        tools: { profile: "minimal" },
+        sandbox: { mode: "off" },
+        skills: [
+          "./skills/marketing/content-creation",
+          "./skills/marketing/email-sequence",
+          "./skills/marketing/seo-optimization"
+        ]
+      },
+      {
+        id: "sales-dev-rep",
+        workspace: "./workspaces/sales-dev-rep",
+        model: {
+          primary: "anthropic/claude-haiku-4-5",
+          fallbacks: ["openai/gpt-4o-mini", "meta/llama-4-scout"]
+        },
+        tools: { profile: "minimal" },
+        sandbox: { mode: "off" },
+        skills: [
+          "./skills/sales/cold-outreach"
+        ]
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════
+  // CHANNEL BINDINGS — CEO Communication
+  // ═══════════════════════════════════════════
+  bindings: [
+    {
+      agentId: "orchestrator",
+      match: { channel: "telegram" },
+      priority: 1
+    },
+    {
+      agentId: "orchestrator",
+      match: { channel: "whatsapp" },
+      priority: 2
+    }
+  ],
+
+  // ═══════════════════════════════════════════
+  // MODEL PROVIDER CONFIGURATION
+  // ═══════════════════════════════════════════
+  models: {
+    providers: {
+      anthropic: {
+        apiKey: { source: "env", id: "ANTHROPIC_API_KEY" }
+      },
+      openai: {
+        apiKey: { source: "env", id: "OPENAI_API_KEY" }
+      },
+      google: {
+        apiKey: { source: "env", id: "GOOGLE_AI_API_KEY" }
+      },
+      deepseek: {
+        apiKey: { source: "env", id: "DEEPSEEK_API_KEY" },
+        baseUrl: "https://api.deepseek.com/v1"
+      },
+      meta: {
+        apiKey: { source: "env", id: "META_API_KEY" },
+        baseUrl: "https://api.together.xyz/v1"
+      },
+      // Local Ollama — runs on your rack's GPU ($0 per token)
+      // Models: llama4-scout, qwen2.5-coder:32b, gemma3:27b
+      ollama: {
+        baseUrl: "http://ollama:11434",
+        apiKey: "ollama-local",
+        api: "ollama"
+      }
+    }
+  }
+}

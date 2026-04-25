@@ -1,0 +1,28 @@
+# Secrets
+.env
+*.pem
+*.key
+
+# Agent workspaces (generated at runtime)
+workspaces/
+
+# Node
+node_modules/
+
+# Docker
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Ollama models (large, pulled at setup)
+ollama-models/
+
+# Claude Hand-off
+.claude/
+08-CLAUDE-HANDOFF-BRIEF.md

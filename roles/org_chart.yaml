@@ -1,0 +1,264 @@
+## Organizational Chart — Communication Topology
+## Defines who can talk to whom, in which direction, and with what message types.
+## The orchestrator enforces this graph when routing inter-agent communication.
+
+departments:
+  executive:
+    agents: ["orchestrator", "cpo", "cto"]
+  product:
+    agents: ["product-manager", "ux-designer"]
+  engineering:
+    agents: ["tech-lead", "senior-dev", "junior-dev"]
+  qa:
+    agents: ["qa-engineer"]
+  devops:
+    agents: ["devops-engineer"]
+  marketing:
+    agents: ["marketing-lead", "content-specialist"]
+  sales:
+    agents: ["sales-lead", "sales-dev-rep"]
+
+nodes:
+  - id: "orchestrator"
+    level: "L8"
+    department: "executive"
+    title: "Factory Orchestrator"
+    reports_to: "ceo"  # human, via Telegram
+    model: "anthropic/claude-opus-4-6"
+
+  - id: "cpo"
+    level: "L7"
+    department: "executive"
+    title: "Chief Product Officer"
+    reports_to: "orchestrator"
+    oversees: ["product-manager", "ux-designer", "marketing-lead", "sales-lead"]
+    model: "anthropic/claude-opus-4-6"
+
+  - id: "cto"
+    level: "L7"
+    department: "executive"
+    title: "Chief Technology Officer"
+    reports_to: "orchestrator"
+    oversees: ["tech-lead", "devops-engineer", "qa-engineer"]
+    model: "anthropic/claude-opus-4-6"
+
+  - id: "product-manager"
+    level: "L6"
+    department: "product"
+    title: "Product Manager"
+    reports_to: "cpo"
+    model: "anthropic/claude-sonnet-4-6"
+
+  - id: "ux-designer"
+    level: "L5"
+    department: "product"
+    title: "UX Designer"
+    reports_to: "product-manager"
+    model: "anthropic/claude-sonnet-4-6"
+
+  - id: "tech-lead"
+    level: "L6"
+    department: "engineering"
+    title: "Tech Lead"
+    reports_to: "cto"
+    oversees: ["senior-dev", "junior-dev"]
+    model: "anthropic/claude-sonnet-4-6"
+
+  - id: "senior-dev"
+    level: "L5"
+    department: "engineering"
+    title: "Senior Developer"
+    reports_to: "tech-lead"
+    model: "anthropic/claude-sonnet-4-6"
+
+  - id: "junior-dev"
+    level: "L3"
+    department: "engineering"
+    title: "Junior Developer"
+    reports_to: "senior-dev"
+    model: "anthropic/claude-haiku-4-5"
+
+  - id: "qa-engineer"
+    level: "L4"
+    department: "qa"
+    title: "QA Engineer"
+    reports_to: "tech-lead"
+    model: "anthropic/claude-haiku-4-5"
+
+  - id: "devops-engineer"
+    level: "L4"
+    department: "devops"
+    title: "DevOps Engineer"
+    reports_to: "tech-lead"
+    model: "anthropic/claude-haiku-4-5"
+
+  - id: "marketing-lead"
+    level: "L6"
+    department: "marketing"
+    title: "Marketing Lead"
+    reports_to: "cpo"
+    oversees: ["content-specialist"]
+    model: "anthropic/claude-sonnet-4-6"
+
+  - id: "content-specialist"
+    level: "L4"
+    department: "marketing"
+    title: "Content Specialist"
+    reports_to: "marketing-lead"
+    model: "anthropic/claude-haiku-4-5"
+
+  - id: "sales-lead"
+    level: "L6"
+    department: "sales"
+    title: "Sales Lead"
+    reports_to: "cpo"
+    oversees: ["sales-dev-rep"]
+    model: "anthropic/claude-sonnet-4-6"
+
+  - id: "sales-dev-rep"
+    level: "L3"
+    department: "sales"
+    title: "Sales Development Representative"
+    reports_to: "sales-lead"
+    model: "anthropic/claude-haiku-4-5"
+
+## Communication Edges
+## direction: "down" = delegation, "up" = reporting/escalation, "lateral" = peer coordination
+
+edges:
+  # Executive → C-Suite
+  - from: "orchestrator"
+    to: "cpo"
+    direction: "down"
+    message_types: ["task_delegation", "status_request", "approval_result"]
+  - from: "orchestrator"
+    to: "cto"
+    direction: "down"
+    message_types: ["task_delegation", "status_request", "approval_result"]
+
+  # C-Suite → Management
+  - from: "cpo"
+    to: "product-manager"
+    direction: "down"
+    message_types: ["task_delegation", "feedback", "prd_review"]
+  - from: "cpo"
+    to: "marketing-lead"
+    direction: "down"
+    message_types: ["task_delegation", "campaign_review"]
+  - from: "cpo"
+    to: "sales-lead"
+    direction: "down"
+    message_types: ["task_delegation", "strategy_direction"]
+  - from: "cto"
+    to: "tech-lead"
+    direction: "down"
+    message_types: ["task_delegation", "architecture_review", "technical_direction"]
+
+  # Management → Execution
+  - from: "tech-lead"
+    to: "senior-dev"
+    direction: "down"
+    message_types: ["task_assignment", "code_review_feedback", "technical_guidance"]
+  - from: "tech-lead"
+    to: "qa-engineer"
+    direction: "down"
+    message_types: ["test_request", "bug_triage"]
+  - from: "tech-lead"
+    to: "devops-engineer"
+    direction: "down"
+    message_types: ["deployment_request", "infra_request"]
+  - from: "senior-dev"
+    to: "junior-dev"
+    direction: "down"
+    message_types: ["task_assignment", "code_review_feedback", "mentoring"]
+  - from: "product-manager"
+    to: "ux-designer"
+    direction: "down"
+    message_types: ["design_request", "design_feedback"]
+  - from: "marketing-lead"
+    to: "content-specialist"
+    direction: "down"
+    message_types: ["content_request", "content_feedback"]
+  - from: "sales-lead"
+    to: "sales-dev-rep"
+    direction: "down"
+    message_types: ["outreach_request", "lead_assignment"]
+
+  # Upward reporting (all agents can report up)
+  - from: "cpo"
+    to: "orchestrator"
+    direction: "up"
+    message_types: ["status_report", "escalation", "approval_request"]
+  - from: "cto"
+    to: "orchestrator"
+    direction: "up"
+    message_types: ["status_report", "escalation", "approval_request"]
+  - from: "product-manager"
+    to: "cpo"
+    direction: "up"
+    message_types: ["status_report", "escalation", "artifact_delivery"]
+  - from: "tech-lead"
+    to: "cto"
+    direction: "up"
+    message_types: ["status_report", "escalation", "artifact_delivery"]
+  - from: "senior-dev"
+    to: "tech-lead"
+    direction: "up"
+    message_types: ["status_report", "escalation", "code_delivery"]
+  - from: "junior-dev"
+    to: "senior-dev"
+    direction: "up"
+    message_types: ["status_report", "escalation", "help_request"]
+  - from: "qa-engineer"
+    to: "tech-lead"
+    direction: "up"
+    message_types: ["test_report", "bug_report", "escalation"]
+  - from: "devops-engineer"
+    to: "tech-lead"
+    direction: "up"
+    message_types: ["deployment_report", "infra_alert", "escalation"]
+
+  # Cross-department lateral (explicitly allowed)
+  - from: "product-manager"
+    to: "tech-lead"
+    direction: "lateral"
+    message_types: ["requirement_clarification", "feasibility_check"]
+  - from: "tech-lead"
+    to: "product-manager"
+    direction: "lateral"
+    message_types: ["technical_constraint", "effort_estimate"]
+  - from: "marketing-lead"
+    to: "product-manager"
+    direction: "lateral"
+    message_types: ["positioning_input", "launch_coordination"]
+  - from: "sales-lead"
+    to: "marketing-lead"
+    direction: "lateral"
+    message_types: ["field_feedback", "content_request"]
+  - from: "qa-engineer"
+    to: "senior-dev"
+    direction: "lateral"
+    message_types: ["bug_report", "test_failure"]
+  - from: "senior-dev"
+    to: "qa-engineer"
+    direction: "lateral"
+    message_types: ["fix_notification", "test_request"]
+
+## Escalation Chains (per department, junior → CEO)
+
+escalation_chains:
+  engineering: ["junior-dev", "senior-dev", "tech-lead", "cto", "orchestrator", "ceo"]
+  product: ["ux-designer", "product-manager", "cpo", "orchestrator", "ceo"]
+  marketing: ["content-specialist", "marketing-lead", "cpo", "orchestrator", "ceo"]
+  sales: ["sales-dev-rep", "sales-lead", "cpo", "orchestrator", "ceo"]
+  devops: ["devops-engineer", "tech-lead", "cto", "orchestrator", "ceo"]
+  qa: ["qa-engineer", "tech-lead", "cto", "orchestrator", "ceo"]
+
+## Communication Policies
+
+policies:
+  max_message_size: 4096  # characters
+  require_artifact_reference: true  # all messages must cite artifact IDs when referencing work
+  no_skip_levels: true  # L3 cannot message L6+ directly, must go through chain
+  cross_department_requires_l5_plus: true  # only L5+ can send lateral messages
+  ceo_contact_via_orchestrator_only: true  # only orchestrator sends Telegram messages to CEO

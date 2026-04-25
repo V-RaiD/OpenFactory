@@ -1,0 +1,237 @@
+## RBAC Permissions — Role-Based Access Control
+## Hierarchical: each level inherits ALL permissions from levels below.
+## Role-specific permissions are additive on top of level permissions.
+
+permission_categories:
+  file:
+    - "file:read"
+    - "file:write"
+    - "file:delete"
+    - "file:read_secrets"
+  code:
+    - "code:generate"
+    - "code:review"
+    - "code:merge"
+    - "code:deploy_staging"
+    - "code:deploy_production"
+  agent:
+    - "agent:spawn_l3"
+    - "agent:spawn_l5"
+    - "agent:spawn_any"
+    - "agent:terminate"
+    - "agent:steer"
+    - "agent:reassign"
+  communication:
+    - "comm:send_peer"
+    - "comm:send_up"
+    - "comm:send_down"
+    - "comm:send_lateral"
+    - "comm:broadcast"
+    - "comm:contact_ceo"
+  infrastructure:
+    - "infra:read_config"
+    - "infra:modify_config"
+    - "infra:manage_containers"
+    - "infra:manage_secrets"
+  budget:
+    - "budget:view_own"
+    - "budget:view_team"
+    - "budget:view_all"
+    - "budget:allocate"
+    - "budget:override"
+  approval:
+    - "approval:request"
+    - "approval:grant_within_team"
+    - "approval:grant_cross_team"
+    - "approval:override_quality_gate"
+
+## Cumulative Level Permissions
+## Each level inherits ALL permissions from the level below it.
+
+level_permissions:
+  L3:
+    - "file:read"
+    - "file:write"
+    - "code:generate"
+    - "comm:send_up"
+    - "comm:send_peer"
+    - "approval:request"
+    - "budget:view_own"
+
+  L4:
+    inherits: "L3"
+    additional:
+      - "comm:send_lateral"  # within department only
+
+  L5:
+    inherits: "L4"
+    additional:
+      - "code:review"
+      - "file:delete"
+      - "comm:send_down"
+      - "approval:grant_within_team"
+      - "budget:view_team"
+      - "infra:read_config"
+
+  L6:
+    inherits: "L5"
+    additional:
+      - "code:merge"
+      - "code:deploy_staging"
+      - "agent:spawn_l3"
+      - "agent:spawn_l5"
+      - "agent:terminate"
+      - "agent:steer"
+      - "agent:reassign"
+      - "comm:broadcast"
+      - "approval:grant_cross_team"
+      - "budget:allocate"
+      - "infra:modify_config"
+
+  L7:
+    inherits: "L6"
+    additional:
+      - "agent:spawn_any"
+      - "approval:override_quality_gate"
+      - "budget:view_all"
+      - "budget:override"
+      - "infra:manage_containers"
+      - "infra:manage_secrets"
+      - "file:read_secrets"
+
+  L8:
+    inherits: "L7"
+    additional:
+      - "code:deploy_production"
+      - "comm:contact_ceo"
+      # Note: deploy_production still requires CEO approval gate
+
+## Role-Specific Additional Permissions
+## These are ON TOP of level permissions for specific roles.
+
+role_permissions:
+  orchestrator:
+    level: "L8"
+    additional:
+      - "pipeline:execute"
+      - "pipeline:pause"
+      - "pipeline:resume"
+      - "pipeline:cancel"
+      - "audit:read_all"
+      - "audit:export"
+
+  cpo:
+    level: "L7"
+    additional:
+      - "prd:approve"
+      - "campaign:approve"
+      - "pricing:approve"
+      - "gtm:approve"
+
+  cto:
+    level: "L7"
+    additional:
+      - "architecture:approve"
+      - "tech_stack:approve"
+      - "security:audit"
+      - "infra:approve_changes"
+
+  tech-lead:
+    level: "L6"
+    additional:
+      - "code:review_final"
+      - "architecture:modify_within_department"
+      - "sprint:plan"
+      - "sprint:assign"
+
+  product-manager:
+    level: "L6"
+    additional:
+      - "prd:write"
+      - "prd:revise"
+      - "backlog:prioritize"
+      - "design:review"
+
+  marketing-lead:
+    level: "L6"
+    additional:
+      - "campaign:create"
+      - "campaign:execute"
+      - "content:approve"
+      - "analytics:read"
+
+  sales-lead:
+    level: "L6"
+    additional:
+      - "pricing:propose"
+      - "outreach:approve"
+      - "crm:read"
+      - "crm:write"
+
+  senior-dev:
+    level: "L5"
+    additional:
+      - "code:refactor_cross_module"
+      - "mentoring:assign_tasks_to_l3"
+
+  ux-designer:
+    level: "L5"
+    additional:
+      - "design:create"
+      - "design:prototype"
+      - "assets:generate"
+
+  qa-engineer:
+    level: "L4"
+    additional:
+      - "test:execute"
+      - "test:report"
+      - "bug:file"
+      - "bug:verify"
+
+  devops-engineer:
+    level: "L4"
+    additional:
+      - "deploy:staging"
+      - "deploy:rollback"
+      - "monitoring:configure"
+      - "infra:read_config"
+
+  content-specialist:
+    level: "L4"
+    additional:
+      - "content:write"
+      - "seo:optimize"
+      - "social:post_draft"
+
+  junior-dev:
+    level: "L3"
+    additional: []
+
+  sales-dev-rep:
+    level: "L3"
+    additional:
+      - "outreach:write"
+      - "crm:read"
+
+## Enforcement Policies
+
+enforcement:
+  evaluation_order:
+    - "Check blocked_commands first (deny always wins)"
+    - "Check level permissions"
+    - "Check role-specific permissions"
+    - "If not explicitly allowed, deny"
+  audit_logging:
+    enabled: true
+    log_all_permission_checks: false  # too noisy
+    log_denials: true
+    log_escalations: true
+    log_approvals: true
+  separation_of_duties:
+    - "Agent that writes code cannot approve its own code review"
+    - "Agent that creates deployment config cannot approve its own production deploy"
+    - "CPO and CTO must both approve architecture changes that affect product"
+  emergency_access:
+    enabled: false
+    note: "No emergency override — all exceptions go through CEO via Telegram"

@@ -1,0 +1,23 @@
+# Cloud Caddyfile — auto-TLS via Let's Encrypt
+# Replace factory.yourdomain.com with your actual domain
+
+factory.yourdomain.com {
+    # Mission Control dashboard
+    handle /dashboard/* {
+        reverse_proxy mission-control:3000
+    }
+
+    # OpenClaw Gateway (portal + API + WebSocket)
+    handle {
+        reverse_proxy openclaw-gateway:18789
+    }
+
+    # WebSocket support for live meetings/sessions
+    @websockets {
+        header Connection *Upgrade*
+        header Upgrade    websocket
+    }
+    handle @websockets {
+        reverse_proxy openclaw-gateway:18789
+    }
+}

@@ -1,0 +1,185 @@
+## Local Rack Docker Compose — Run the ENTIRE factory on your home hardware
+## Everything on localhost. No cloud, no remote access, no domain names.
+##
+## Includes: OpenClaw + Ollama (local LLM) + Coolify (product deployment) + Monitoring
+##
+## Prerequisites:
+##   - Docker + Docker Compose
+##   - NVIDIA GPU + nvidia-container-toolkit (for Ollama)
+##
+## Setup:
+##   1. cp .env.example .env && edit .env
+##   2. docker compose -f infrastructure/docker-compose.local-rack.yml up -d
+##   3. Pull models: docker exec factory-ollama ollama pull qwen2.5-coder:32b
+##   4. Access: http://localhost:18789 (factory portal)
+
+version: "3.9"
+
+services:
+  # ═══════════════════════════════════════════════════════
+  # FACTORY LAYER — The orchestrator and agents
+  # ═══════════════════════════════════════════════════════
+
+  # ── OpenClaw Gateway ──────────────────────────────────
+  openclaw-gateway:
+    image: node:24-bookworm
+    container_name: factory-gateway
+    working_dir: /app
+    command: >
+      sh -c "npm install -g openclaw && openclaw start --port 18789 --bind 0.0.0.0"
+    ports:
+      - "18789:18789"
+    volumes:
+      - ../openclaw.json:/root/.openclaw/openclaw.json:ro
+      - ../SOUL.md:/root/.openclaw/SOUL.md:ro
+      - ../AGENTS.md:/root/.openclaw/AGENTS.md:ro
+      - ../skills:/root/.openclaw/skills:ro
+      - ../pipelines:/root/.openclaw/pipelines:ro
+      - ../templates:/root/.openclaw/templates:ro
+      - ../roles:/root/.openclaw/roles:ro
+      - factory-workspaces:/root/.openclaw/workspaces
+    env_file:
+      - ../.env
+    environment:
+      - NODE_ENV=production
+      - OPENCLAW_PORT=18789
+      - OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN}
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_API_KEY=ollama-local
+    depends_on:
+      - valkey
+      - ollama
+    restart: unless-stopped
+    networks:
+      - factory-net
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4G
+
+  # ── Ollama (Local LLM Inference) ─────────────────────
+  # Serves Llama 4 Scout, Qwen, Gemma locally on your GPU
+  # L3-L4 agents use this instead of API calls = $0 cost
+  ollama:
+    image: ollama/ollama:latest
+    container_name: factory-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - OLLAMA_NUM_PARALLEL=4
+      - OLLAMA_MAX_LOADED_MODELS=2
+    restart: unless-stopped
+    networks:
+      - factory-net
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # ── Valkey (Redis fork, fully open source BSD-3) ──────
+  # Drop-in Redis replacement by Linux Foundation.
+  # Same API, same commands, no SSPL license concerns.
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: factory-valkey
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey-data:/data
+    command: valkey-server --appendonly yes --maxmemory 512mb
+    restart: unless-stopped
+    networks:
+      - factory-net
+
+  # ── Code Sandbox (Docker-in-Docker) ──────────────────
+  sandbox:
+    image: docker:27-dind
+    container_name: factory-sandbox
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=
+    volumes:
+      - sandbox-data:/var/lib/docker
+      - factory-workspaces:/workspaces
+    restart: unless-stopped
+    networks:
+      - factory-net
+
+  # ═══════════════════════════════════════════════════════
+  # PRODUCT DEPLOYMENT LAYER — Where built products run
+  # ═══════════════════════════════════════════════════════
+
+  # ── Coolify (Self-hosted PaaS — your local Vercel) ───
+  # Products the factory builds get deployed HERE
+  # Web UI at http://localhost:8000
+  coolify:
+    image: ghcr.io/coollabsio/coolify:latest
+    container_name: factory-coolify
+    ports:
+      - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - coolify-data:/data/coolify
+    environment:
+      - APP_URL=http://localhost:8000
+    restart: unless-stopped
+    networks:
+      - factory-net
+
+  # ── Dockge (Docker Compose manager, MIT license) ──────
+  # Simpler than Portainer, purpose-built for Compose stacks
+  # Web UI at http://localhost:5001
+  dockge:
+    image: louislam/dockge:1
+    container_name: factory-dockge
+    ports:
+      - "5001:5001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dockge-data:/app/data
+      - /opt/stacks:/opt/stacks
+    environment:
+      - DOCKGE_STACKS_DIR=/opt/stacks
+    restart: unless-stopped
+    networks:
+      - factory-net
+
+  # ═══════════════════════════════════════════════════════
+  # SHARED INFRASTRUCTURE — Used by deployed products
+  # ═══════════════════════════════════════════════════════
+
+  # ── PostgreSQL (shared database for products) ────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: factory-postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=factory
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-factory-local-dev}
+      - POSTGRES_DB=factory
+    restart: unless-stopped
+    networks:
+      - factory-net
+
+volumes:
+  factory-workspaces:
+  ollama-models:
+  valkey-data:
+  sandbox-data:
+  coolify-data:
+  dockge-data:
+  postgres-data:
+
+networks:
+  factory-net:
+    driver: bridge

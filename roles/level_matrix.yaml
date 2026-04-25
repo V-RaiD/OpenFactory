@@ -1,0 +1,173 @@
+## L-Factor Matrix — Agent Seniority Levels
+## Maps each level to capabilities, models, permissions, and budgets.
+## The orchestrator uses this to spawn agents with correct constraints.
+
+levels:
+  L3:
+    title: "Junior / SDE-I"
+    scope: "Single file, single task isolation"
+    autonomy: "Execute well-defined tasks only. No judgment calls."
+    models:
+      primary: "anthropic/claude-haiku-4-5"
+      fallback_1: "openai/gpt-4o-mini"
+      fallback_2: "meta/llama-4-scout"
+    cost_tier: "fast"
+    capabilities:
+      - "Read assigned files only"
+      - "Write code within assigned scope"
+      - "Run unit tests"
+      - "Report status to supervisor"
+    restrictions:
+      - "Cannot read other repo components outside assignment"
+      - "Cannot install packages"
+      - "Cannot access network"
+      - "Cannot delete files"
+      - "Cannot make architectural decisions"
+      - "Must escalate on ambiguity — do not guess"
+    max_iterations: 3
+    token_budget_per_task: 50000
+    roles: ["junior-dev", "sales-dev-rep"]
+
+  L4:
+    title: "Mid / SDE-II"
+    scope: "Full feature within a module"
+    autonomy: "Minor technical decisions within component. Can read adjacent modules."
+    models:
+      primary: "anthropic/claude-haiku-4-5"
+      fallback_1: "openai/gpt-4o-mini"
+      fallback_2: "deepseek/deepseek-v3"
+    cost_tier: "fast"
+    capabilities:
+      - "Everything L3 can do"
+      - "Read related modules for context"
+      - "Install packages from approved list"
+      - "Create up to 3 new files per task"
+      - "Write integration tests"
+    restrictions:
+      - "Cannot modify architecture"
+      - "Cannot merge code to main"
+      - "Cannot deploy"
+      - "Cannot spawn other agents"
+    max_iterations: 4
+    token_budget_per_task: 80000
+    roles: ["qa-engineer", "devops-engineer", "content-specialist"]
+
+  L5:
+    title: "Senior / SDE-III"
+    scope: "Cross-component. Mentors juniors."
+    autonomy: "Design decisions within their area. Code review authority."
+    models:
+      primary: "anthropic/claude-sonnet-4-6"
+      fallback_1: "openai/gpt-4o"
+      fallback_2: "deepseek/deepseek-v3"
+    cost_tier: "standard"
+    capabilities:
+      - "Everything L4 can do"
+      - "Full repository read access"
+      - "Review and approve code"
+      - "Refactor across modules"
+      - "Set coding standards within team"
+      - "Create new modules with documentation"
+    restrictions:
+      - "Cannot change system architecture"
+      - "Cannot deploy to production"
+      - "Cannot allocate resources across teams"
+      - "Cannot override quality gates"
+    max_iterations: 5
+    token_budget_per_task: 150000
+    roles: ["senior-dev", "ux-designer"]
+
+  L6:
+    title: "Staff / Tech Lead"
+    scope: "Org-wide technical direction. Dispute resolution."
+    autonomy: "Architectural decisions. Agent spawning. Staging deployments."
+    models:
+      primary: "anthropic/claude-sonnet-4-6"
+      fallback_1: "openai/gpt-5.4"
+      fallback_2: "meta/llama-4-maverick-400b"
+    cost_tier: "standard"
+    capabilities:
+      - "Everything L5 can do"
+      - "Resolve disputes between agents"
+      - "Spawn and terminate L3-L5 agents"
+      - "Modify architecture within department"
+      - "Approve staging deployments"
+      - "Reassign tasks between agents"
+      - "Invoke management skills (dispute-resolution, resource-allocation, scope-negotiation)"
+    restrictions:
+      - "Cannot deploy to production (requires CEO gate)"
+      - "Cannot override budget limits"
+      - "Cannot spawn L7+ agents"
+      - "Cannot contact CEO directly (must go through orchestrator)"
+    max_iterations: 5
+    token_budget_per_task: 250000
+    roles: ["tech-lead", "product-manager", "marketing-lead", "sales-lead"]
+
+  L7:
+    title: "Principal / C-Suite"
+    scope: "Company-wide strategic decisions."
+    autonomy: "Technology strategy. Market positioning. Go/no-go on features."
+    models:
+      primary: "anthropic/claude-opus-4-6"
+      fallback_1: "openai/gpt-5.4"
+      fallback_2: "deepseek/deepseek-r1"
+    cost_tier: "advanced"
+    capabilities:
+      - "Everything L6 can do"
+      - "Set company-wide technical strategy"
+      - "Approve infrastructure changes"
+      - "Make buy-vs-build decisions"
+      - "Invoke budget-management skill"
+      - "Override L6 decisions with documented rationale"
+      - "Communicate cross-department"
+    restrictions:
+      - "Cannot launch products (requires CEO approval)"
+      - "Cannot commit budget over $50 without CEO flag"
+      - "Cannot override CEO decisions"
+    max_iterations: null  # strategic, not iterative
+    token_budget_per_task: 500000
+    roles: ["cpo", "cto"]
+
+  L8:
+    title: "Orchestrator / CEO-Proxy"
+    scope: "Entire factory orchestration."
+    autonomy: "Spawn any agent. Route any task. Manages pipeline execution."
+    models:
+      primary: "anthropic/claude-opus-4-6"
+      fallback_1: "openai/gpt-5.4"
+      fallback_2: "meta/llama-4-maverick-400b"
+    cost_tier: "advanced"
+    capabilities:
+      - "Everything L7 can do"
+      - "Spawn and terminate any agent at any level"
+      - "Route tasks across all departments"
+      - "Monitor aggregate costs"
+      - "Trigger CEO approval gates via Telegram"
+      - "Execute Lobster pipelines"
+      - "Break deadlocks between C-Suite agents"
+    restrictions:
+      - "Cannot bypass CEO approval gates"
+      - "Cannot exceed total project budget without CEO override"
+      - "Must log all decisions to audit trail"
+    max_iterations: null
+    token_budget_per_task: 1000000
+    roles: ["orchestrator"]
+
+## Global Policies
+
+cost_control:
+  ceo_notification_threshold: 50  # dollars — flag to CEO if any phase exceeds this
+  total_project_warning: 200  # dollars — hard warning at this level
+  model_routing: "Use the cheapest model that can handle each task. Opus for strategy, Sonnet for design, Haiku for execution."
+  token_accounting: "Track per-agent, per-task, per-phase. Report via budget-management skill."
+
+escalation:
+  max_retries_before_escalate: 3
+  stuck_detection: "If 2 consecutive outputs are identical, agent is stuck — escalate"
+  escalation_timeout_seconds: 300  # if no response from senior in 5 min, escalate further
+
+anti_loop:
+  max_review_cycles: 5
+  max_test_fix_cycles: 5
+  max_prd_revision_cycles: 3
+  kill_switch: "If token budget exceeded, terminate task and escalate to management"
