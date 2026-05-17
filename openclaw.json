@@ -5,7 +5,7 @@
   agents: {
     defaults: {
       model: {
-        primary: "anthropic/claude-sonnet-4-6",
+        primary: "groq/llama3-70b-8192",
         fallbacks: ["openai/gpt-5.4", "meta/llama-4-maverick-400b"]
       },
       subagents: {
@@ -98,7 +98,7 @@
         id: "tech-lead",
         workspace: "./workspaces/tech-lead",
         model: {
-          primary: "anthropic/claude-sonnet-4-6",
+          primary: "groq/llama3-70b-8192",
           fallbacks: ["openai/gpt-5.4", "meta/llama-4-maverick-400b"]
         },
         tools: { profile: "coding" },
@@ -119,7 +119,7 @@
         id: "product-manager",
         workspace: "./workspaces/product-manager",
         model: {
-          primary: "anthropic/claude-sonnet-4-6",
+          primary: "groq/llama3-70b-8192",
           fallbacks: ["openai/gpt-5.4", "meta/llama-4-maverick-400b"]
         },
         tools: { profile: "minimal" },
@@ -134,7 +134,7 @@
         id: "marketing-lead",
         workspace: "./workspaces/marketing-lead",
         model: {
-          primary: "anthropic/claude-sonnet-4-6",
+          primary: "groq/llama3-70b-8192",
           fallbacks: ["openai/gpt-5.4", "meta/llama-4-maverick-400b"]
         },
         tools: { profile: "messaging" },
@@ -148,7 +148,7 @@
         id: "sales-lead",
         workspace: "./workspaces/sales-lead",
         model: {
-          primary: "anthropic/claude-sonnet-4-6",
+          primary: "groq/llama3-70b-8192",
           fallbacks: ["openai/gpt-5.4", "meta/llama-4-maverick-400b"]
         },
         tools: { profile: "messaging" },
@@ -167,7 +167,7 @@
         id: "senior-dev",
         workspace: "./workspaces/senior-dev",
         model: {
-          primary: "anthropic/claude-sonnet-4-6",
+          primary: "groq/llama3-70b-8192",
           fallbacks: ["openai/gpt-4o", "deepseek/deepseek-v3"]
         },
         tools: { profile: "coding" },
@@ -183,7 +183,7 @@
         id: "ux-designer",
         workspace: "./workspaces/ux-designer",
         model: {
-          primary: "anthropic/claude-sonnet-4-6",
+          primary: "groq/llama3-70b-8192",
           fallbacks: ["openai/gpt-4o", "deepseek/deepseek-v3"]
         },
         tools: { profile: "minimal" },
@@ -199,7 +199,7 @@
         workspace: "./workspaces/junior-dev",
         model: {
           // On local rack: swap primary to "ollama/qwen2.5-coder:32b" for $0 cost
-          primary: "anthropic/claude-haiku-4-5",
+          primary: "groq/llama3-8b-8192",
           fallbacks: ["ollama/qwen2.5-coder:32b", "openai/gpt-4o-mini"]
         },
         tools: {
@@ -216,7 +216,7 @@
         id: "qa-engineer",
         workspace: "./workspaces/qa-engineer",
         model: {
-          primary: "anthropic/claude-haiku-4-5",
+          primary: "groq/llama3-8b-8192",
           fallbacks: ["openai/gpt-4o-mini", "meta/llama-4-scout"]
         },
         tools: { profile: "coding" },
@@ -231,7 +231,7 @@
         id: "devops-engineer",
         workspace: "./workspaces/devops-engineer",
         model: {
-          primary: "anthropic/claude-haiku-4-5",
+          primary: "groq/llama3-8b-8192",
           fallbacks: ["openai/gpt-4o-mini", "deepseek/deepseek-v3"]
         },
         tools: { profile: "coding" },
@@ -248,7 +248,7 @@
         workspace: "./workspaces/content-specialist",
         model: {
           // On local rack: swap primary to "ollama/gemma3:27b" for $0 cost
-          primary: "anthropic/claude-haiku-4-5",
+          primary: "groq/llama3-8b-8192",
           fallbacks: ["ollama/gemma3:27b", "openai/gpt-4o-mini"]
         },
         tools: { profile: "minimal" },
@@ -263,7 +263,7 @@
         id: "sales-dev-rep",
         workspace: "./workspaces/sales-dev-rep",
         model: {
-          primary: "anthropic/claude-haiku-4-5",
+          primary: "groq/llama3-8b-8192",
           fallbacks: ["openai/gpt-4o-mini", "meta/llama-4-scout"]
         },
         tools: { profile: "minimal" },
@@ -296,6 +296,10 @@
   // ═══════════════════════════════════════════
   models: {
     providers: {
+      groq: {
+        apiKey: { source: "env", id: "GROQ_API_KEY" },
+        baseUrl: "https://api.groq.com/openai/v1"
+      },
       anthropic: {
         apiKey: { source: "env", id: "ANTHROPIC_API_KEY" }
       },
